@@ -97,7 +97,6 @@ async fn process_responses(incoming_requests: MsgReceiver) {
         match input {
             Input::Result(result) => {
                 println!("{:?}", result);
-
                 let tx = request_map.remove(&result.id).unwrap();
                 tx.send(result).unwrap();
             }
