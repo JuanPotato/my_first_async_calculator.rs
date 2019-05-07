@@ -97,6 +97,7 @@ async fn process_responses(incoming_requests: MsgReceiver) {
         match input {
             Input::Result(result) => {
                 println!("{:?}", result);
+
                 let tx = request_map.remove(&result.id).unwrap();
                 tx.send(result).unwrap();
             }
@@ -135,9 +136,9 @@ async fn get_results<T: AsyncReadExt + Unpin>(stream: &mut T) -> Input {
                 await!(stream.read_exact(&mut data_bytes)).unwrap();
 
                 let mut cursor_bytes = Cursor::new(data_bytes);
+                status = ResponseStatus::Length;
                 yield Input::Result(cursor_bytes.deserialize::<MathResult>().unwrap());
             }
         }
     }
 }
-
