@@ -79,21 +79,17 @@ impl Calculator {
 
 
 async fn process_responses(incoming_requests: MsgReceiver) {
-    let mut stream = await!(TcpStream::connect(&"127.0.0.1:7878".parse().unwrap())).unwrap();
-
-    let mut length_bytes = [0u8; 4];
-    let incoming_data = stream.read_exact(&mut length_bytes);
-
+    let stream = await!(TcpStream::connect(&"127.0.0.1:7878".parse().unwrap())).unwrap();
     let (mut read_stream, mut write_stream) = stream.split();
 
-    let results = Box::pin(get_results(&mut read_stream));
-    let requests = incoming_requests.map(|m| Input::Request(m));
+    let results_stream = Box::pin(get_results(&mut read_stream));
+    let requests_stream = incoming_requests.map(Input::Request);
 
-    let mut select = futures::stream::select(results, requests);
+    let mut combined_stream = futures::stream::select(results_stream, requests_stream);
 
     let mut request_map: HashMap<u32, oneshot::Sender<MathResult>> = HashMap::new();
 
-    while let Some(input) = await!(select.next()) {
+    while let Some(input) = await!(combined_stream.next()) {
         match input {
             Input::Result(result) => {
                 println!("{:?}", result);
