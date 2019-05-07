@@ -19,7 +19,13 @@ fn main() -> io::Result<()> {
         let res = await!(calc.add(40.0, 200.0));
         println!("{:?}", res);
 
-        let res = await!(calc.add(40.0, 2.0));
+        let res = await!(calc.subtract(40.0, 2.0));
+        println!("{:?}", res);
+
+        let res = await!(calc.multiply(991.0, 997.0));
+        println!("{:?}", res);
+
+        let res = await!(calc.divide(988027.0, 991.0));
         println!("{:?}", res);
 
         Ok(())
