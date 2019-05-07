@@ -1,0 +1,13 @@
+[package]
+name = "async_calc_types"
+version = "0.1.0"
+authors = ["Hasan Ibraheem <hasantiny@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+byteorder = "1"
+rand = "0.6"
+
+[lib]
+name = "calc_types"
+path = "lib.rs"

@@ -1,0 +1,22 @@
+[package]
+name = "async_calc_server"
+version = "0.1.0"
+authors = ["Hasan Ibraheem <hasantiny@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+romio = "0.3.0-alpha.6"
+futures-util-preview = "0.3.0-alpha.15"
+rand = "0.6.5"
+byteorder = "1"
+
+[dependencies.futures]
+package = "futures-preview"
+git = "https://github.com/taiki-e/futures-rs"
+branch = "async-stream"
+version = "0.3.0-alpha.15"
+features = ["async-stream", "nightly"]
+
+[dependencies.async_calc_types]
+path = "../math"
+version = "*"
