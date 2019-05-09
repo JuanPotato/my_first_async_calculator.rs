@@ -4,16 +4,20 @@
 
 use std::io::{self, Cursor};
 
-use futures::{async_stream, StreamExt};
+use futures::StreamExt;
 use futures_util::io::{AsyncReadExt, AsyncWriteExt};
 use romio::TcpStream;
 
-use calc_types::{Deserializer, MathRequest, MathResult, Operation, Serializer};
+use calc_utils::{Deserializer, MathRequest, MathResult, Operation, PacketStreamer, Serializer};
 
 pub async fn process_client(stream: TcpStream) -> io::Result<()> {
-    let (mut read_stream, mut write_stream) = stream.split();
+    let (read_stream, mut write_stream) = stream.split();
 
-    let mut request_stream = Box::pin(get_requests(&mut read_stream));
+    let mut request_stream = PacketStreamer::new(read_stream).map(|v| {
+        let mut cursor_bytes = Cursor::new(v);
+        cursor_bytes.deserialize::<MathRequest>().unwrap()
+    });
+
 
     while let Some(request) = await!(request_stream.next()) {
         println!("Math request: {:?}", &request);
@@ -41,40 +45,4 @@ pub async fn process_client(stream: TcpStream) -> io::Result<()> {
     }
 
     Ok(())
-}
-
-#[derive(Debug)]
-enum ResponseStatus {
-    Length,
-    Data(usize),
-}
-
-#[async_stream]
-async fn get_requests<T: AsyncReadExt + Unpin>(stream: &mut T) -> MathRequest {
-    let mut status = ResponseStatus::Length;
-    let mut length_bytes = [0u8; 4];
-
-    loop {
-        match status {
-            ResponseStatus::Length => {
-                if let Err(e) = await!(stream.read_exact(&mut length_bytes)) {
-                    return;
-                }
-
-                let len = length_bytes.as_ref().deserialize::<u32>().unwrap() as usize;
-
-                status = ResponseStatus::Data(len);
-            }
-
-            ResponseStatus::Data(length) => {
-                let mut data_bytes = vec![0u8; length];
-                await!(stream.read_exact(&mut data_bytes)).unwrap();
-
-                let mut cursor_bytes = Cursor::new(data_bytes);
-                yield cursor_bytes.deserialize::<MathRequest>().unwrap();
-
-                status = ResponseStatus::Length;
-            }
-        }
-    }
 }

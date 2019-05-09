@@ -2,5 +2,5 @@
 members = [
     "server",
     "client",
-    "math",
+    "utils",
 ]

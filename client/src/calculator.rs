@@ -5,7 +5,7 @@
 use std::collections::HashMap;
 use std::io::Cursor;
 
-use futures::{async_stream, SinkExt, StreamExt};
+use futures::{SinkExt, StreamExt};
 use futures::channel::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use futures::channel::oneshot;
 use futures::executor::ThreadPool;
@@ -14,18 +14,12 @@ use futures_util::io::AsyncReadExt;
 use futures_util::io::AsyncWriteExt;
 use romio::TcpStream;
 
-use calc_types::{Deserializer, MathRequest, MathResult, Serializer};
+use calc_utils::{Deserializer, MathRequest, MathResult, PacketStreamer, Serializer};
 
 #[derive(Debug)]
 pub struct Calculator {
     threadpool: ThreadPool,
     message_sender: MsgSender,
-}
-
-#[derive(Debug)]
-enum ResponseStatus {
-    Length,
-    Data(usize),
 }
 
 #[derive(Debug)]
@@ -80,9 +74,13 @@ impl Calculator {
 
 async fn process_responses(incoming_requests: MsgReceiver) {
     let stream = await!(TcpStream::connect(&"127.0.0.1:7878".parse().unwrap())).unwrap();
-    let (mut read_stream, mut write_stream) = stream.split();
+    let (read_stream, mut write_stream) = stream.split();
 
-    let results_stream = Box::pin(get_results(&mut read_stream));
+    let results_stream = PacketStreamer::new(read_stream).map(|v| {
+        let mut cursor_bytes = Cursor::new(v);
+        Input::Result(cursor_bytes.deserialize::<MathResult>().unwrap())
+    });
+
     let requests_stream = incoming_requests.map(Input::Request);
 
     let mut combined_stream = futures::stream::select(results_stream, requests_stream);
@@ -107,32 +105,6 @@ async fn process_responses(incoming_requests: MsgReceiver) {
                 await!(write_stream.write_all(&buf)).unwrap();
 
                 request_map.insert(req.id, tx);
-            }
-        }
-    }
-}
-
-#[async_stream]
-async fn get_results<T: AsyncReadExt + Unpin>(stream: &mut T) -> Input {
-    let mut status = ResponseStatus::Length;
-    let mut length_bytes = [0u8; 4];
-
-    loop {
-        match status {
-            ResponseStatus::Length => {
-                await!(stream.read_exact(&mut length_bytes)).unwrap();
-                let len = length_bytes.as_ref().deserialize::<u32>().unwrap() as usize;
-
-                status = ResponseStatus::Data(len);
-            }
-
-            ResponseStatus::Data(length) => {
-                let mut data_bytes = vec![0u8; length];
-                await!(stream.read_exact(&mut data_bytes)).unwrap();
-
-                let mut cursor_bytes = Cursor::new(data_bytes);
-                status = ResponseStatus::Length;
-                yield Input::Result(cursor_bytes.deserialize::<MathResult>().unwrap());
             }
         }
     }

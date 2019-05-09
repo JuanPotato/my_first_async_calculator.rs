@@ -8,7 +8,7 @@ use std::io;
 
 use futures::executor;
 
-use calculator::Calculator;
+use crate::calculator::Calculator;
 
 mod calculator;
 

@@ -2,11 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::fmt;
+
+pub use crate::deserialize::{Deserializable, Deserializer};
+pub use crate::serialize::{Serializable, Serializer};
+pub use crate::lowest_level::PacketStreamer;
+
 mod deserialize;
 mod serialize;
-
-pub use deserialize::{Deserializable, Deserializer};
-pub use serialize::{Serializable, Serializer};
+mod highest_level;
+mod lowest_level;
 
 #[derive(Debug)]
 pub enum Operation {
@@ -65,5 +70,24 @@ impl MathRequest {
             a,
             b,
         }
+    }
+}
+
+impl fmt::Display for Operation {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let c = match self {
+            Operation::Addition => '+',
+            Operation::Subtraction => '-',
+            Operation::Multiplication => '*',
+            Operation::Division => '/',
+        };
+
+        write!(f, "{}", c)
+    }
+}
+
+impl fmt::Display for MathRequest {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{} {} {}", self.a, self.operation, self.b)
     }
 }

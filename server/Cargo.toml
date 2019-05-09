@@ -7,14 +7,8 @@ edition = "2018"
 [dependencies]
 romio = "0.3.0-alpha.6"
 futures-util-preview = "0.3.0-alpha.15"
+futures-preview = "0.3.0-alpha.15"
 
-[dependencies.futures]
-package = "futures-preview"
-git = "https://github.com/taiki-e/futures-rs"
-branch = "async-stream"
-version = "0.3.0-alpha.15"
-features = ["async-stream", "nightly"]
-
-[dependencies.async_calc_types]
-path = "../math"
+[dependencies.async_calc_utils]
+path = "../utils"
 version = "0.1.0"

@@ -1,5 +1,5 @@
 [package]
-name = "async_calc_types"
+name = "async_calc_utils"
 version = "0.1.0"
 authors = ["Hasan Ibraheem <hasantiny@gmail.com>"]
 edition = "2018"
@@ -7,7 +7,9 @@ edition = "2018"
 [dependencies]
 byteorder = "1"
 rand = "0.6"
+futures-util-preview = "0.3.0-alpha.15"
+futures-preview = "0.3.0-alpha.15"
 
 [lib]
-name = "calc_types"
+name = "calc_utils"
 path = "lib.rs"
