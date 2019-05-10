@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 use std::io::Cursor;
 use std::pin::Pin;
 use std::marker::PhantomData;
@@ -10,15 +14,15 @@ use crate::deserialize::{Deserializable, Deserializer};
 use crate::packet_streamer::PacketStreamer;
 
 #[derive(Debug)]
-pub struct SerealStreamer<A: AsyncRead + Unpin, D: Deserializable + Unpin>(PacketStreamer<A>, PhantomData<D>);
+pub struct SerealStreamer<D: Deserializable + Unpin, A: AsyncRead + Unpin>(PacketStreamer<A>, PhantomData<D>);
 
-impl<A: AsyncRead + Unpin,D: Deserializable + Unpin> SerealStreamer<A, D> {
-    pub fn new(reader: A) -> SerealStreamer<A, D> {
+impl<D: Deserializable + Unpin, A: AsyncRead + Unpin> SerealStreamer<D, A> {
+    pub fn new(reader: A) -> SerealStreamer<D, A> {
         SerealStreamer(PacketStreamer::new(reader), PhantomData)
     }
 }
 
-impl<A: AsyncRead + Unpin, D: Deserializable + Unpin> Stream for SerealStreamer<A, D> {
+impl<D: Deserializable + Unpin, A: AsyncRead + Unpin> Stream for SerealStreamer<D, A> {
     type Item = D;
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Option<D>> {
@@ -35,4 +39,3 @@ impl<A: AsyncRead + Unpin, D: Deserializable + Unpin> Stream for SerealStreamer<
         }
     }
 }
-

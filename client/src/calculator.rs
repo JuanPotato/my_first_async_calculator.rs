@@ -10,10 +10,9 @@ use futures::channel::oneshot;
 use futures::executor::ThreadPool;
 use futures::task::SpawnExt;
 use futures_util::io::AsyncReadExt;
-use futures_util::io::AsyncWriteExt;
 use romio::TcpStream;
 
-use calc_utils::{Deserializer, MathRequest, MathResult, SerealStreamer, Serializer};
+use calc_utils::{MathRequest, MathResult, SerealSink, SerealStreamer};
 
 #[derive(Debug)]
 pub struct Calculator {
@@ -73,13 +72,13 @@ impl Calculator {
 
 async fn process_responses(incoming_requests: MsgReceiver) {
     let stream = await!(TcpStream::connect(&"127.0.0.1:7878".parse().unwrap())).unwrap();
-    let (read_stream, mut write_stream) = stream.split();
+    let (read_stream, write_stream) = stream.split();
 
     let results_stream = SerealStreamer::new(read_stream).map(Input::Result);
-
     let requests_stream = incoming_requests.map(Input::Request);
-
     let mut combined_stream = futures::stream::select(results_stream, requests_stream);
+
+    let mut server_sink: SerealSink<MathRequest, _> = SerealSink::new(write_stream);
 
     let mut request_map: HashMap<u32, oneshot::Sender<MathResult>> = HashMap::new();
 
@@ -93,13 +92,7 @@ async fn process_responses(incoming_requests: MsgReceiver) {
 
             Input::Request((req, tx)) => {
                 println!("{:?}", req);
-                let mut buf = Vec::<u8>::new();
-
-                buf.serialize(&(4 + 4 + 8 + 8 as u32)).unwrap();
-                buf.serialize(&req).unwrap();
-
-                await!(write_stream.write_all(&buf)).unwrap();
-
+                await!(server_sink.send(&req)).unwrap();
                 request_map.insert(req.id, tx);
             }
         }

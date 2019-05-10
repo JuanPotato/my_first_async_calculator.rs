@@ -2,18 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::io::{self, Cursor};
+use std::io;
 
-use futures::StreamExt;
-use futures_util::io::{AsyncReadExt, AsyncWriteExt};
+use futures::{SinkExt, StreamExt};
+use futures_util::io::AsyncReadExt;
 use romio::TcpStream;
 
-use calc_utils::{Deserializer, MathRequest, MathResult, Operation, SerealStreamer, Serializer};
+use calc_utils::{MathRequest, MathResult, Operation, SerealSink, SerealStreamer};
 
 pub async fn process_client(stream: TcpStream) -> io::Result<()> {
-    let (read_stream, mut write_stream) = stream.split();
+    let (read_stream, write_stream) = stream.split();
 
-    let mut request_stream: SerealStreamer<_, MathRequest> = SerealStreamer::new(read_stream);
+    let mut request_stream: SerealStreamer<MathRequest, _> = SerealStreamer::new(read_stream);
+    let mut response_sink: SerealSink<MathResult, _> = SerealSink::new(write_stream);
 
     while let Some(request) = await!(request_stream.next()) {
         println!("Math request: {:?}", &request);
@@ -32,12 +33,7 @@ pub async fn process_client(stream: TcpStream) -> io::Result<()> {
             res,
         };
 
-        let mut buf = Vec::<u8>::new();
-
-        buf.serialize(&(4 + 8 as u32)).unwrap();
-        buf.serialize(&math_res).unwrap();
-
-        await!(write_stream.write_all(&buf)).unwrap();
+        await!(response_sink.send(&math_res)).unwrap();
     }
 
     Ok(())
