@@ -47,31 +47,31 @@ impl Calculator {
     pub async fn send(&mut self, req: MathRequest) -> Result<MathResult, oneshot::Canceled> {
         let (one_tx, one_rx) = oneshot::channel();
 
-        await!(self.message_sender.send((req, one_tx))).unwrap();
+        self.message_sender.send((req, one_tx)).await.unwrap();
 
-        await!(one_rx)
+        one_rx.await
     }
 
     pub async fn add(&mut self, a: f64, b: f64) -> Result<MathResult, oneshot::Canceled> {
-        await!(self.send(MathRequest::add(a, b)))
+        self.send(MathRequest::add(a, b)).await
     }
 
     pub async fn subtract(&mut self, a: f64, b: f64) -> Result<MathResult, oneshot::Canceled> {
-        await!(self.send(MathRequest::subtract(a, b)))
+        self.send(MathRequest::subtract(a, b)).await
     }
 
     pub async fn multiply(&mut self, a: f64, b: f64) -> Result<MathResult, oneshot::Canceled> {
-        await!(self.send(MathRequest::multiply(a, b)))
+        self.send(MathRequest::multiply(a, b)).await
     }
 
     pub async fn divide(&mut self, a: f64, b: f64) -> Result<MathResult, oneshot::Canceled> {
-        await!(self.send(MathRequest::divide(a, b)))
+        self.send(MathRequest::divide(a, b)).await
     }
 }
 
 
 async fn process_responses(incoming_requests: MsgReceiver) {
-    let stream = await!(TcpStream::connect(&"127.0.0.1:7878".parse().unwrap())).unwrap();
+    let stream = TcpStream::connect(&"127.0.0.1:7878".parse().unwrap()).await.unwrap();
     let (read_stream, write_stream) = stream.split();
 
     let results_stream = SerealStreamer::new(read_stream).map(Input::Result);
@@ -82,7 +82,7 @@ async fn process_responses(incoming_requests: MsgReceiver) {
 
     let mut request_map: HashMap<u32, oneshot::Sender<MathResult>> = HashMap::new();
 
-    while let Some(input) = await!(combined_stream.next()) {
+    while let Some(input) = combined_stream.next().await {
         match input {
             Input::Result(result) => {
                 println!("{:?}", result);
@@ -92,7 +92,7 @@ async fn process_responses(incoming_requests: MsgReceiver) {
 
             Input::Request((req, tx)) => {
                 println!("{:?}", req);
-                await!(server_sink.send(&req)).unwrap();
+                server_sink.send(&req).await.unwrap();
                 request_map.insert(req.id, tx);
             }
         }

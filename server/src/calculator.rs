@@ -16,7 +16,7 @@ pub async fn process_client(stream: TcpStream) -> io::Result<()> {
     let mut request_stream: SerealStreamer<MathRequest, _> = SerealStreamer::new(read_stream);
     let mut response_sink: SerealSink<MathResult, _> = SerealSink::new(write_stream);
 
-    while let Some(request) = await!(request_stream.next()) {
+    while let Some(request) = request_stream.next().await {
         println!("Math request: {:?}", &request);
 
         let res = match &request.operation {
@@ -33,7 +33,7 @@ pub async fn process_client(stream: TcpStream) -> io::Result<()> {
             res,
         };
 
-        await!(response_sink.send(&math_res)).unwrap();
+        response_sink.send(&math_res).await.unwrap();
     }
 
     Ok(())

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![feature(async_await, await_macro, generators)]
+#![feature(async_await)]
 
 use std::io;
 
@@ -24,14 +24,14 @@ fn main() -> io::Result<()> {
 
         println!("Listening on 127.0.0.1:7878");
 
-        while let Some(tcp_stream) = await!(incoming_connections.next()) {
+        while let Some(tcp_stream) = incoming_connections.next().await {
             let stream = tcp_stream?;
             let addr = stream.peer_addr()?;
 
             threadpool.spawn(async move {
                 println!("Accepting stream from: {}", addr);
 
-                await!(process_client(stream)).unwrap();
+                process_client(stream).await.unwrap();
 
                 println!("Closing stream from: {}", addr);
             }).unwrap();
