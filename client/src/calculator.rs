@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
-use std::io::Cursor;
 
 use futures::{SinkExt, StreamExt};
 use futures::channel::mpsc::{self, UnboundedReceiver, UnboundedSender};
@@ -14,7 +13,7 @@ use futures_util::io::AsyncReadExt;
 use futures_util::io::AsyncWriteExt;
 use romio::TcpStream;
 
-use calc_utils::{Deserializer, MathRequest, MathResult, PacketStreamer, Serializer};
+use calc_utils::{Deserializer, MathRequest, MathResult, SerealStreamer, Serializer};
 
 #[derive(Debug)]
 pub struct Calculator {
@@ -76,10 +75,7 @@ async fn process_responses(incoming_requests: MsgReceiver) {
     let stream = await!(TcpStream::connect(&"127.0.0.1:7878".parse().unwrap())).unwrap();
     let (read_stream, mut write_stream) = stream.split();
 
-    let results_stream = PacketStreamer::new(read_stream).map(|v| {
-        let mut cursor_bytes = Cursor::new(v);
-        Input::Result(cursor_bytes.deserialize::<MathResult>().unwrap())
-    });
+    let results_stream = SerealStreamer::new(read_stream).map(Input::Result);
 
     let requests_stream = incoming_requests.map(Input::Request);
 

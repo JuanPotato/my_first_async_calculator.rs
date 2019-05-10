@@ -8,16 +8,12 @@ use futures::StreamExt;
 use futures_util::io::{AsyncReadExt, AsyncWriteExt};
 use romio::TcpStream;
 
-use calc_utils::{Deserializer, MathRequest, MathResult, Operation, PacketStreamer, Serializer};
+use calc_utils::{Deserializer, MathRequest, MathResult, Operation, SerealStreamer, Serializer};
 
 pub async fn process_client(stream: TcpStream) -> io::Result<()> {
     let (read_stream, mut write_stream) = stream.split();
 
-    let mut request_stream = PacketStreamer::new(read_stream).map(|v| {
-        let mut cursor_bytes = Cursor::new(v);
-        cursor_bytes.deserialize::<MathRequest>().unwrap()
-    });
-
+    let mut request_stream: SerealStreamer<_, MathRequest> = SerealStreamer::new(read_stream);
 
     while let Some(request) = await!(request_stream.next()) {
         println!("Math request: {:?}", &request);

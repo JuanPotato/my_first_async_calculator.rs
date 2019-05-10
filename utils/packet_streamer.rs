@@ -36,7 +36,7 @@ impl<A: AsyncRead + Unpin> PacketStreamer<A> {
 impl<A: AsyncRead + Unpin> Stream for PacketStreamer<A> {
     type Item = Vec<u8>;
 
-    fn poll_next(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Option<Self::Item>> {
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Option<Vec<u8>>> {
         // Get ourself (good pun) out of a pin
         // basically &mut self
         let s = Pin::get_mut(self);

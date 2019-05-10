@@ -6,12 +6,14 @@ use std::fmt;
 
 pub use crate::deserialize::{Deserializable, Deserializer};
 pub use crate::serialize::{Serializable, Serializer};
-pub use crate::lowest_level::PacketStreamer;
+pub use crate::packet_streamer::PacketStreamer;
+pub use crate::sereal_streamer::SerealStreamer;
 
 mod deserialize;
 mod serialize;
-mod highest_level;
-mod lowest_level;
+mod fancy_packet_streamer;
+mod packet_streamer;
+mod sereal_streamer;
 
 #[derive(Debug)]
 pub enum Operation {
