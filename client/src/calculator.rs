@@ -7,16 +7,12 @@ use std::collections::HashMap;
 use futures::{SinkExt, StreamExt};
 use futures::channel::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use futures::channel::oneshot;
-use futures::executor::ThreadPool;
-use futures::task::SpawnExt;
-use futures_util::io::AsyncReadExt;
-use romio::TcpStream;
+use tokio::net::TcpStream;
 
 use calc_utils::{MathRequest, MathResult, SerealSink, SerealStreamer};
 
 #[derive(Debug)]
 pub struct Calculator {
-    threadpool: ThreadPool,
     message_sender: MsgSender,
 }
 
@@ -33,13 +29,11 @@ type MsgReceiver = UnboundedReceiver<Msg>;
 
 impl Calculator {
     pub fn new() -> Calculator {
-        let mut threadpool = ThreadPool::new().unwrap();
         let (tx, rx) = mpsc::unbounded::<Msg>();
 
-        threadpool.spawn(process_responses(rx)).unwrap();
+        tokio::spawn(process_responses(rx));
 
         Calculator {
-            threadpool,
             message_sender: tx,
         }
     }
@@ -71,29 +65,51 @@ impl Calculator {
 
 
 async fn process_responses(incoming_requests: MsgReceiver) {
-    let stream = TcpStream::connect(&"127.0.0.1:7878".parse().unwrap()).await.unwrap();
+    // First lets connect to the server and split our stream into read and write
+    let mut stream = TcpStream::connect("127.0.0.1:7878").await.unwrap();
     let (read_stream, write_stream) = stream.split();
 
+    // Lets take that write stream and pass it to a SerealSink which will take in Messages
+    // and serialize them to send them down the tcp sink
+    let mut server_sink = SerealSink::new(write_stream);
+
+    // Now lets take that read stream, and pass it to a SerealStreamer which will read input
+    // from the stream and deserialize it into Messages.
+    // We map these messages to the Input enum
     let results_stream = SerealStreamer::new(read_stream).map(Input::Result);
+
+    // Now lets take the incoming requests stream and wrap them in the Input enum too.
     let requests_stream = incoming_requests.map(Input::Request);
+
+    // This finally allows us to merge the two streams so that we're awaiting a message from either.
+    // This way, we can receive a request from the client, or a result from the server immediately
+    // as either happen.
     let mut combined_stream = futures::stream::select(results_stream, requests_stream);
 
-    let mut server_sink: SerealSink<MathRequest, _> = SerealSink::new(write_stream);
-
+    // We also need a way to route each incoming result back to the request it came from. Luckily
+    // Each message has a u32 id associated with it. So we create a hashmap of the ids and oneshot
+    // senders that we will use to send back the result in.
     let mut request_map: HashMap<u32, oneshot::Sender<MathResult>> = HashMap::new();
 
+    // Now we're ready to receive results or requests from our stream.
     while let Some(input) = combined_stream.next().await {
         match input {
-            Input::Result(result) => {
-                println!("{:?}", result);
-                let tx = request_map.remove(&result.id).unwrap();
-                tx.send(result).unwrap();
-            }
-
+            // We've received a request from the client
             Input::Request((req, tx)) => {
                 println!("{:?}", req);
+                // Let's send the request to the server through the SerealSink
                 server_sink.send(&req).await.unwrap();
+                // And lets put that request id into the map so we can send the result back
                 request_map.insert(req.id, tx);
+            }
+
+            // We've received a result from the server
+            Input::Result(result) => {
+                println!("{:?}", result);
+                // Get the oneshot sender from the map that matches with the id
+                let tx = request_map.remove(&result.id).unwrap();
+                // Send the result back to the client
+                tx.send(result).unwrap();
             }
         }
     }

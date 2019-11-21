@@ -7,7 +7,7 @@ use std::pin::Pin;
 use byteorder::{ByteOrder, LE};
 use futures::stream::Stream;
 use futures::task::{Context, Poll};
-use futures_util::io::AsyncRead;
+use tokio::io::AsyncRead;
 
 const LENGTH_BYTES: usize = 4;
 

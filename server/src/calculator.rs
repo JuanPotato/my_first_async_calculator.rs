@@ -5,12 +5,11 @@
 use std::io;
 
 use futures::{SinkExt, StreamExt};
-use futures_util::io::AsyncReadExt;
-use romio::TcpStream;
+use tokio::net::TcpStream;
 
 use calc_utils::{MathRequest, MathResult, Operation, SerealSink, SerealStreamer};
 
-pub async fn process_client(stream: TcpStream) -> io::Result<()> {
+pub async fn process_client(mut stream: TcpStream) -> io::Result<()> {
     let (read_stream, write_stream) = stream.split();
 
     let mut request_stream: SerealStreamer<MathRequest, _> = SerealStreamer::new(read_stream);

@@ -7,7 +7,7 @@ use std::pin::Pin;
 
 use futures::sink::Sink;
 use futures::task::{Context, Poll};
-use futures_util::io::AsyncWrite;
+use tokio::io::AsyncWrite;
 
 #[derive(Debug)]
 pub struct PacketSink<A: AsyncWrite + Unpin> {
@@ -27,7 +27,7 @@ impl<A: AsyncWrite + Unpin> PacketSink<A> {
 }
 
 impl<A: AsyncWrite + Unpin> Sink<&[u8]> for PacketSink<A> {
-    type SinkError = io::Error;
+    type Error = io::Error;
 
     fn poll_ready(self: Pin<&mut Self>, _cx: &mut Context) -> Poll<Result<(), io::Error>> {
         // Idk if I should be doing anything else :/
@@ -70,7 +70,7 @@ impl<A: AsyncWrite + Unpin> Sink<&[u8]> for PacketSink<A> {
         pin_writer.poll_flush(cx)
     }
 
-    fn poll_close(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Result<(), Self::SinkError>> {
+    fn poll_close(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Result<(), Self::Error>> {
         let PacketSink { async_writer, .. } = self.get_mut();
 
         let pin_writer = Pin::new(async_writer);

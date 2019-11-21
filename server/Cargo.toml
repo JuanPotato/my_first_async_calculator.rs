@@ -5,9 +5,9 @@ authors = ["Hasan Ibraheem <hasantiny@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-romio = "0.3.0-alpha.6"
-futures-util-preview = "0.3.0-alpha.15"
-futures-preview = "0.3.0-alpha.15"
+futures = "0.3"
+tokio = "0.2.0-alpha.6"
+tokio-executor = "0.2.0-alpha.6"
 
 [dependencies.async_calc_utils]
 path = "../utils"

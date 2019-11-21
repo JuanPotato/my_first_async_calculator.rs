@@ -8,7 +8,7 @@ use std::marker::PhantomData;
 
 use futures::stream::Stream;
 use futures::task::{Context, Poll};
-use futures_util::io::AsyncRead;
+use tokio::io::AsyncRead;
 
 use crate::deserialize::{Deserializable, Deserializer};
 use crate::packet_streamer::PacketStreamer;

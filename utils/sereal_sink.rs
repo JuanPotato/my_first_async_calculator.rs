@@ -8,7 +8,7 @@ use std::pin::Pin;
 
 use futures::sink::Sink;
 use futures::task::{Context, Poll};
-use futures_util::io::AsyncWrite;
+use tokio::io::AsyncWrite;
 
 use crate::packet_sink::PacketSink;
 use crate::serialize::{Serializable, Serializer};
@@ -24,7 +24,7 @@ impl<S: Serializable + Unpin, A: AsyncWrite + Unpin> SerealSink<S, A> {
 
 
 impl<S: Serializable + Unpin, A: AsyncWrite + Unpin> Sink<&S> for SerealSink<S, A> {
-    type SinkError = io::Error;
+    type Error = io::Error;
 
     fn poll_ready(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Result<(), io::Error>> {
         let SerealSink(ps, _) = self.get_mut();
@@ -50,7 +50,7 @@ impl<S: Serializable + Unpin, A: AsyncWrite + Unpin> Sink<&S> for SerealSink<S, 
         packet_sink.poll_flush(cx)
     }
 
-    fn poll_close(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Result<(), Self::SinkError>> {
+    fn poll_close(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Result<(), Self::Error>> {
         let SerealSink(ps, _) = self.get_mut();
         let packet_sink = Pin::new(ps);
 
